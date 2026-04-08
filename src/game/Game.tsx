@@ -320,7 +320,8 @@ export default function Game() {
 
   // Input
   const keyRef   = useRef({ up:false, down:false, left:false, right:false });
-  const touchRef = useRef({ left:false, right:false, accel:false, brake:false });
+  const touchRef    = useRef({ accel: false, brake: false, steerAngle: 0 });
+  const swipeRef    = useRef({ active: false, startX: 0 }); // tracks right-zone swipe
 
   // ── Keyboard ──────────────────────────────────────────────
   useEffect(() => {
@@ -426,9 +427,9 @@ export default function Game() {
         const tch   = touchRef.current;
         const player = cars[0];
 
-        const acc   = (inp.up   || tch.accel) ? 1 : (inp.down  || tch.brake) ? -1 : 0;
-        const steer = (inp.left || tch.left)  ? -player.maxWheelAngle
-                    : (inp.right|| tch.right) ?  player.maxWheelAngle : 0;
+        const acc   = (inp.up || tch.accel) ? 1 : (inp.down || tch.brake) ? -1 : 0;
+        const kbSteer = inp.left ? -player.maxWheelAngle : inp.right ? player.maxWheelAngle : 0;
+        const steer = kbSteer !== 0 ? kbSteer : tch.steerAngle;
 
         // Player physics
         updateCar(player, acc, steer, dt);
@@ -489,9 +490,27 @@ export default function Game() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
 
-  // ── Touch button helpers ──────────────────────────────────
-  const tBtn = (key: keyof typeof touchRef.current, val: boolean) =>
+  // ── Touch helpers ─────────────────────────────────────────
+  const tBtn = (key: 'accel' | 'brake', val: boolean) =>
     () => { touchRef.current[key] = val; };
+
+  // Swipe-zone handlers (right side → steerAngle)
+  const SWIPE_SENSITIVITY = 80; // px of swipe = full lock
+  const onSwipeStart = (clientX: number) => {
+    swipeRef.current = { active: true, startX: clientX };
+    touchRef.current.steerAngle = 0;
+  };
+  const onSwipeMove = (clientX: number) => {
+    if (!swipeRef.current.active) return;
+    const delta = clientX - swipeRef.current.startX;
+    // Normalise to ±maxWheelAngle; we use the player's current value via a fixed cap
+    const MAX_ANGLE = 26;
+    touchRef.current.steerAngle = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, (delta / SWIPE_SENSITIVITY) * MAX_ANGLE));
+  };
+  const onSwipeEnd = () => {
+    swipeRef.current.active = false;
+    touchRef.current.steerAngle = 0;
+  };
 
   // ─────────────────────────────────────────────────────────
   // JSX
@@ -582,26 +601,11 @@ export default function Game() {
         </div>
       )}
 
-      {/* ── Touch controls (always visible during racing / countdown) ── */}
+      {/* ── Touch controls ── */}
       {(phase === 'racing' || phase === 'countdown') && (
         <div style={styles.touchControls}>
-          {/* Left side: steering */}
-          <div style={styles.dpad}>
-            <button
-              style={styles.dpadBtn}
-              onTouchStart={tBtn('left',  true)}  onTouchEnd={tBtn('left',  false)}
-              onMouseDown ={tBtn('left',  true)}  onMouseUp  ={tBtn('left',  false)}
-              onMouseLeave={tBtn('left',  false)}
-            >◀</button>
-            <button
-              style={styles.dpadBtn}
-              onTouchStart={tBtn('right', true)}  onTouchEnd={tBtn('right', false)}
-              onMouseDown ={tBtn('right', true)}  onMouseUp  ={tBtn('right', false)}
-              onMouseLeave={tBtn('right', false)}
-            >▶</button>
-          </div>
 
-          {/* Right side: accel / brake */}
+          {/* Left side: GAS + BRAKE buttons */}
           <div style={styles.actionBtns}>
             <button
               style={{ ...styles.actionBtn, background: '#28a745cc' }}
@@ -616,6 +620,21 @@ export default function Game() {
               onMouseLeave={tBtn('brake', false)}
             >BRK</button>
           </div>
+
+          {/* Right side: swipe zone for steering */}
+          <div
+            style={styles.swipeZone}
+            onTouchStart={e => onSwipeStart(e.touches[0].clientX)}
+            onTouchMove ={e => { e.preventDefault(); onSwipeMove(e.touches[0].clientX); }}
+            onTouchEnd  ={onSwipeEnd}
+            onMouseDown ={e => onSwipeStart(e.clientX)}
+            onMouseMove ={e => { if (e.buttons) onSwipeMove(e.clientX); }}
+            onMouseUp   ={onSwipeEnd}
+            onMouseLeave={onSwipeEnd}
+          >
+            <span style={styles.swipeHint}>◀ STEER ▶</span>
+          </div>
+
         </div>
       )}
     </div>
@@ -769,29 +788,10 @@ const styles: Record<string, React.CSSProperties> = {
     right:          0,
     display:        'flex',
     justifyContent: 'space-between',
+    alignItems:     'flex-end',
     padding:        '0 16px',
     zIndex:         5,
     pointerEvents:  'none',
-  },
-  dpad: {
-    display:      'flex',
-    gap:          10,
-    pointerEvents:'all',
-  },
-  dpadBtn: {
-    width:        68,
-    height:       68,
-    background:   'rgba(255,255,255,0.15)',
-    border:       '2px solid rgba(255,255,255,0.3)',
-    borderRadius: 12,
-    color:        '#fff',
-    fontSize:     26,
-    cursor:       'pointer',
-    display:      'flex',
-    alignItems:   'center',
-    justifyContent:'center',
-    WebkitUserSelect:'none',
-    touchAction:  'none',
   },
   actionBtns: {
     display:      'flex',
@@ -801,14 +801,34 @@ const styles: Record<string, React.CSSProperties> = {
   },
   actionBtn: {
     width:        80,
-    height:       52,
+    height:       64,
     border:       'none',
-    borderRadius: 10,
+    borderRadius: 14,
     color:        '#fff',
-    fontSize:     15,
+    fontSize:     16,
     fontWeight:   900,
     cursor:       'pointer',
     letterSpacing:1,
     touchAction:  'none',
+  },
+  swipeZone: {
+    width:          180,
+    height:         110,
+    background:     'rgba(255,255,255,0.08)',
+    border:         '2px solid rgba(255,255,255,0.2)',
+    borderRadius:   16,
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'center',
+    cursor:         'ew-resize',
+    pointerEvents:  'all',
+    touchAction:    'none',
+    userSelect:     'none',
+  },
+  swipeHint: {
+    color:        'rgba(255,255,255,0.45)',
+    fontSize:     13,
+    letterSpacing:2,
+    pointerEvents:'none',
   },
 };
