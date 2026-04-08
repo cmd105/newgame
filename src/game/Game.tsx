@@ -515,8 +515,15 @@ export default function Game() {
   // ─────────────────────────────────────────────────────────
   // JSX
   // ─────────────────────────────────────────────────────────
+  const isRacing = phase === 'racing' || phase === 'countdown';
+
   return (
-    <div style={styles.root}>
+    <div
+      style={styles.root}
+      onTouchStart={isRacing ? e => onSwipeStart(e.touches[0].clientX) : undefined}
+      onTouchMove ={isRacing ? e => { e.preventDefault(); onSwipeMove(e.touches[0].clientX); } : undefined}
+      onTouchEnd  ={isRacing ? onSwipeEnd : undefined}
+    >
       {/* Game canvas */}
       <canvas
         ref={canvasRef}
@@ -601,40 +608,27 @@ export default function Game() {
         </div>
       )}
 
-      {/* ── Touch controls ── */}
-      {(phase === 'racing' || phase === 'countdown') && (
+      {/* ── Touch controls: GAS + BRK on bottom-left only ── */}
+      {isRacing && (
         <div style={styles.touchControls}>
-
-          {/* Left side: GAS + BRAKE buttons */}
           <div style={styles.actionBtns}>
             <button
               style={{ ...styles.actionBtn, background: '#28a745cc' }}
-              onTouchStart={tBtn('accel', true)}  onTouchEnd={tBtn('accel', false)}
-              onMouseDown ={tBtn('accel', true)}  onMouseUp  ={tBtn('accel', false)}
+              onTouchStart={e => { e.stopPropagation(); tBtn('accel', true)(); }}
+              onTouchEnd  ={e => { e.stopPropagation(); tBtn('accel', false)(); }}
+              onMouseDown ={tBtn('accel', true)}
+              onMouseUp   ={tBtn('accel', false)}
               onMouseLeave={tBtn('accel', false)}
             >GAS</button>
             <button
               style={{ ...styles.actionBtn, background: '#dc3545cc' }}
-              onTouchStart={tBtn('brake', true)}  onTouchEnd={tBtn('brake', false)}
-              onMouseDown ={tBtn('brake', true)}  onMouseUp  ={tBtn('brake', false)}
+              onTouchStart={e => { e.stopPropagation(); tBtn('brake', true)(); }}
+              onTouchEnd  ={e => { e.stopPropagation(); tBtn('brake', false)(); }}
+              onMouseDown ={tBtn('brake', true)}
+              onMouseUp   ={tBtn('brake', false)}
               onMouseLeave={tBtn('brake', false)}
             >BRK</button>
           </div>
-
-          {/* Right side: swipe zone for steering */}
-          <div
-            style={styles.swipeZone}
-            onTouchStart={e => onSwipeStart(e.touches[0].clientX)}
-            onTouchMove ={e => { e.preventDefault(); onSwipeMove(e.touches[0].clientX); }}
-            onTouchEnd  ={onSwipeEnd}
-            onMouseDown ={e => onSwipeStart(e.clientX)}
-            onMouseMove ={e => { if (e.buttons) onSwipeMove(e.clientX); }}
-            onMouseUp   ={onSwipeEnd}
-            onMouseLeave={onSwipeEnd}
-          >
-            <span style={styles.swipeHint}>◀ STEER ▶</span>
-          </div>
-
         </div>
       )}
     </div>
@@ -784,12 +778,7 @@ const styles: Record<string, React.CSSProperties> = {
   touchControls: {
     position:       'absolute',
     bottom:         12,
-    left:           0,
-    right:          0,
-    display:        'flex',
-    justifyContent: 'space-between',
-    alignItems:     'flex-end',
-    padding:        '0 16px',
+    left:           16,
     zIndex:         5,
     pointerEvents:  'none',
   },
@@ -810,25 +799,5 @@ const styles: Record<string, React.CSSProperties> = {
     cursor:       'pointer',
     letterSpacing:1,
     touchAction:  'none',
-  },
-  swipeZone: {
-    width:          180,
-    height:         110,
-    background:     'rgba(255,255,255,0.08)',
-    border:         '2px solid rgba(255,255,255,0.2)',
-    borderRadius:   16,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    cursor:         'ew-resize',
-    pointerEvents:  'all',
-    touchAction:    'none',
-    userSelect:     'none',
-  },
-  swipeHint: {
-    color:        'rgba(255,255,255,0.45)',
-    fontSize:     13,
-    letterSpacing:2,
-    pointerEvents:'none',
   },
 };
