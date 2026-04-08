@@ -390,12 +390,15 @@ export default function Game() {
     if (phase === 'menu') { cancelAnimationFrame(rafRef.current); return; }
 
     const canvas = canvasRef.current;
-    const ctx    = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const safeCtx: CanvasRenderingContext2D = ctx;
 
     let lastT = performance.now();
 
     function tick(now: number) {
+      const ctx   = safeCtx;
       const rawDt = (now - lastT) / (1000 / FPS);
       const dt    = Math.min(rawDt, 3.0);
       lastT = now;
