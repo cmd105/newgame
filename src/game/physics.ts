@@ -90,7 +90,7 @@ export function updateCar(car: Car, acc: number, steer: number, dt = 1): void {
   }
 
   // ── Clamp angular velocity ────────────────────────────────
-  car.angularVelocity = clamp(car.angularVelocity, -4.5, 4.5);
+  car.angularVelocity = clamp(car.angularVelocity, -2.8, 2.8);
 
   // ── Integrate ─────────────────────────────────────────────
   car.rotation += car.angularVelocity * dt;

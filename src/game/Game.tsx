@@ -24,22 +24,22 @@ const CAR_PRESETS: Record<CarType, Omit<Car, 'id'|'x'|'y'|'rotation'|'vx'|'vy'|'
   sportscar: {
     maxSpeed: 5.2, maxSpeedRev: 2.8,
     engineAcc: 0.115, engineBrk: 0.18, engineRev: 0.075,
-    maxWheelAngle: 30, wheelAngleVelocity: 3,
-    torqueAcc: 0.42, torqueRev: 0.90, torqueDamp: 0.12,
+    maxWheelAngle: 22, wheelAngleVelocity: 2,
+    torqueAcc: 0.22, torqueRev: 0.55, torqueDamp: 0.18,
     drift: 1.0,
   },
   racingcar: {
     maxSpeed: 6.8, maxSpeedRev: 2.8,
     engineAcc: 0.17, engineBrk: 0.22, engineRev: 0.09,
-    maxWheelAngle: 25, wheelAngleVelocity: 9,
-    torqueAcc: 0.38, torqueRev: 1.1, torqueDamp: 0.10,
+    maxWheelAngle: 20, wheelAngleVelocity: 5,
+    torqueAcc: 0.20, torqueRev: 0.70, torqueDamp: 0.16,
     drift: 1.0,
   },
   gokart: {
     maxSpeed: 4.4, maxSpeedRev: 2.4,
     engineAcc: 0.10, engineBrk: 0.15, engineRev: 0.06,
-    maxWheelAngle: 36, wheelAngleVelocity: 4,
-    torqueAcc: 0.50, torqueRev: 0.80, torqueDamp: 0.14,
+    maxWheelAngle: 26, wheelAngleVelocity: 3,
+    torqueAcc: 0.26, torqueRev: 0.50, torqueDamp: 0.20,
     drift: 1.0,
   },
 };
